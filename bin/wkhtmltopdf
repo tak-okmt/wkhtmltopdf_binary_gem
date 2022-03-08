@@ -27,11 +27,12 @@ suffix = case RbConfig::CONFIG['host_os']
            os = 'ubuntu_20.04' if os.start_with?('ubuntu_20.') ||
                                   os.start_with?('ubuntu_21.')
 
-           os = 'centos_6' if (os.start_with?('amzn_') && os != 'amzn_2') ||
-                              (os.empty? && File.read('/etc/centos-release').start_with?('CentOS release 6'))
+           amazon_2 = os =~ /\Aamzn_2\b/
+           amazon_1 = os.start_with?('amzn_') && !amazon_2
 
-           os = 'centos_7' if (os.start_with?('amzn_2') && !os.start_with?('amzn_20')) ||
-                              os.start_with?('rhel_7.')
+           os = 'centos_6' if amazon_1 || (os.empty? && File.read('/etc/centos-release').start_with?('CentOS release 6'))
+
+           os = 'centos_7' if amazon_2 || os.start_with?('rhel_7.')
            
            os = "centos_8" if os.start_with?('rocky_8')
 
@@ -44,7 +45,14 @@ suffix = case RbConfig::CONFIG['host_os']
            os = 'archlinux' if os.start_with?('arch_') ||
                                os.start_with?('manjaro_')
 
-           architecture = RbConfig::CONFIG['host_cpu'] == 'x86_64' ? 'amd64' : 'i386'
+           host_cpu = RbConfig::CONFIG['host_cpu']
+           architecture = if %w(arm64 aarch64 arch64).include?(host_cpu)
+                            'arm64'
+                          elsif host_cpu == 'x86_64'
+                            'amd64'
+                          else
+                            'i386'
+                          end
 
            "#{os}_#{architecture}"
          when /darwin/

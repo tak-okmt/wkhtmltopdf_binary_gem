@@ -14,6 +14,15 @@ suffix = case RbConfig::CONFIG['host_os']
          when /linux/
            os = `. /etc/os-release 2> /dev/null && echo ${ID}_${VERSION_ID}`.strip
 
+           host_cpu = RbConfig::CONFIG['host_cpu']
+           architecture = if %w(arm64 aarch64 arch64).include?(host_cpu)
+                            'arm64'
+                          elsif host_cpu == 'x86_64'
+                            'amd64'
+                          else
+                            'i386'
+                          end
+
            os = 'ubuntu_16.04' if os.start_with?('ubuntu_16.') ||
                                   os.start_with?('ubuntu_17.')
 
@@ -32,8 +41,9 @@ suffix = case RbConfig::CONFIG['host_os']
 
            os = 'centos_6' if amazon_1 || (os.empty? && File.read('/etc/centos-release').start_with?('CentOS release 6'))
 
-           os = 'centos_7' if amazon_2 || os.start_with?('rhel_7.')
-           
+           os = 'amzn_2' if amazon_2 && architecture == 'arm64' # in order to use 'wkhtmltopdf_amzn_2_arm64.gz' binary
+           os = 'centos_7' if os.start_with?('rhel_7.') || (amazon_2 && architecture != 'arm64')
+
            os = "centos_8" if os.start_with?('rocky_8')
 
            os_based_on_debian_9 = os.start_with?('debian_9') ||
@@ -44,15 +54,6 @@ suffix = case RbConfig::CONFIG['host_os']
 
            os = 'archlinux' if os.start_with?('arch_') ||
                                os.start_with?('manjaro_')
-
-           host_cpu = RbConfig::CONFIG['host_cpu']
-           architecture = if %w(arm64 aarch64 arch64).include?(host_cpu)
-                            'arm64'
-                          elsif host_cpu == 'x86_64'
-                            'amd64'
-                          else
-                            'i386'
-                          end
 
            "#{os}_#{architecture}"
          when /darwin/
